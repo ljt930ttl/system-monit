@@ -2,71 +2,70 @@ package info
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"runtime"
 	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
-const (
-	B = iota
-	KB
-	MB
-	GB
-	TB
-	PB
-)
-
-func unit(i int, val float64) (int, float64) {
-	if val > 1024 {
-		v := val / 1024
-		return unit(i+1, v)
-	}
-	return i, val
-}
-
-func convertUnit(u int, val float64) string {
-	if val > 1024 {
-		u, v := unit(u, val)
-		switch u {
-		case B:
-			return fmt.Sprintf("%.2fB", v)
-		case KB:
-			return fmt.Sprintf("%.2fKB", v)
-		case MB:
-			return fmt.Sprintf("%.2fMB", v)
-		case GB:
-			return fmt.Sprintf("%.2fGB", v)
-		case TB:
-			return fmt.Sprintf("%.2fTB", v)
-		case PB:
-			return fmt.Sprintf("%.2fPB", v)
-		default:
-			return fmt.Sprintf("%.2f", v)
-		}
-	}
-	return fmt.Sprintf("%.2f", val)
-
-}
-
 func CreatTable() table.Writer {
 	newTable := table.NewWriter()
 	// newTable.SetAutoIndex(true)
+	newTable.Style().Options.SeparateHeader = true
 	newTable.Style().Options.SeparateRows = true
 	newTable.Style().Options.SeparateFooter = true
 	newTable.Style().Title.Align = text.AlignCenter
 	return newTable
 }
+func FmtPercent(t table.Writer, name string) {
 
+	//字体颜色
+	warnColor := text.Colors{text.BgRed}
+	warnTransFormer := text.Transformer(func(val interface{}) string {
+		if val.(float64) > 80 {
+			return warnColor.Sprintf("%.2f%%", val)
+		}
+		return fmt.Sprintf("%.2f%%", val)
+	})
+	t.Style().Format = table.FormatOptions{
+		Header: text.FormatTitle,
+	}
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{
+			Name:        name,
+			Align:       text.AlignCenter,
+			AlignHeader: text.AlignCenter,
+			AlignFooter: text.AlignCenter,
+			Transformer: warnTransFormer,
+		},
+	})
+
+}
+
+func resetTable(t table.Writer) {
+	t.ResetRows()
+	t.ResetHeaders()
+}
+
+func updateHost(t table.Writer) {
+	hInfo := GetHostInfo()
+	resetTable(t)
+	t.SetTitle("系统信息")
+	t.AppendRows([]table.Row{
+		{"系统名称", hInfo.Hostname},
+		{"系统类别", hInfo.OS},
+		{"系统类型", hInfo.KernelArch},
+		{"发行版本", fmt.Sprintf("%s-%s", hInfo.Platform, hInfo.PlatformVersion)},
+		{"内核版本", hInfo.KernelVersion},
+		{"启动时间", time.Unix(int64(hInfo.BootTime), 0).Format(time.DateTime)},
+		{"运行时间", fmtSinceTime(time.Unix(int64(hInfo.Uptime), 0))},
+	})
+}
 func updateCPU(t table.Writer) {
 	cpuInfo := GetCpuInfo()
 	cpuCurrentInfo := GetCpuCurrentInfo(cpuInfo)
 	loadInfo := GetLoadCurrentInfo(cpuInfo)
-	t.ResetRows()
-	t.ResetHeaders()
+	resetTable(t)
 	t.SetTitle("cpu信息")
 	t.AppendHeader(table.Row{fmt.Sprintf("Cores:%d, Logical Cores:%d", cpuInfo.CPUCores, cpuInfo.CPULogicalCores), cpuInfo.ModelName})
 
@@ -96,38 +95,12 @@ func updateCPU(t table.Writer) {
 	t.AppendRow(table.Row{cTable.Render(), lTable.Render()})
 }
 
-func FmtPercent(t table.Writer, name string) {
-
-	//字体颜色
-	warnColor := text.Colors{text.BgRed}
-	warnTransFormer := text.Transformer(func(val interface{}) string {
-		if val.(float64) > 80 {
-			return warnColor.Sprintf("%.2f%%", val)
-		}
-		return fmt.Sprintf("%.2f%%", val)
-	})
-	t.Style().Format = table.FormatOptions{
-		Header: text.FormatTitle,
-	}
-	t.SetColumnConfigs([]table.ColumnConfig{
-		{
-			Name:        name,
-			Align:       text.AlignCenter,
-			AlignHeader: text.AlignCenter,
-			AlignFooter: text.AlignCenter,
-			Transformer: warnTransFormer,
-		},
-	})
-
-}
-
 func updateMemory(t table.Writer) {
 
 	MemInfoLast := GetMemInfo()
 	SwapMemInfoLast := GetSwapInfo()
 	t.SetTitle("内存信息")
-	t.ResetHeaders()
-	t.ResetRows()
+	resetTable(t)
 	t.AppendHeader(table.Row{"type", "total", "used", "userPercent", "free", "available"})
 	t.AppendRow(
 		table.Row{
@@ -156,8 +129,7 @@ func updateDisk(t table.Writer) {
 	if err != nil {
 		fmt.Printf("获取磁盘信息失败 , err:%v\n", err)
 	}
-	t.ResetRows()
-	t.ResetHeaders()
+	resetTable(t)
 	t.SetTitle("硬盘信息")
 	// fmt.Printf("%v", rows)
 	dTable := CreatTable()
@@ -200,8 +172,7 @@ func updateNet(t table.Writer) {
 		fmt.Printf("获取网卡信息失败 , err:%v\n", err)
 	}
 	t.SetTitle("网络信息")
-	t.ResetHeaders()
-	t.ResetRows()
+	resetTable(t)
 	t.AppendHeader(table.Row{"Name", "BytesSent", "BytesRecv", "PacketsSent", "PacketsRecv"})
 	for _, row := range nets {
 		t.AppendRow(table.Row{row.Name, row.BytesSent, row.BytesRecv, row.PacketsSent, row.PacketsRecv})
@@ -230,6 +201,9 @@ func UITicker(t table.Writer) {
 				case "d":
 					updateDisk(t)
 					render(t)
+				case "h":
+					updateHost(t)
+					render(t)
 				case "n":
 					updateNet(t)
 					render(t)
@@ -255,20 +229,4 @@ func UITicker(t table.Writer) {
 			break
 		}
 	}
-}
-
-var ros = runtime.GOOS
-
-func clear() {
-
-	if ros == "linux" {
-		cmd := exec.Command("clear") //Linux example, its tested
-		cmd.Stdout = os.Stdout
-		cmd.Run()
-	} else if ros == "windows" {
-		cmd := exec.Command("cmd", "/c", "cls") //Windows example, its tested
-		cmd.Stdout = os.Stdout
-		cmd.Run()
-	}
-
 }
