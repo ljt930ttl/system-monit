@@ -8,16 +8,22 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 )
 
-func CreatTable() table.Writer {
-	newTable := table.NewWriter()
-	// newTable.SetAutoIndex(true)
-	newTable.Style().Options.SeparateHeader = true
-	newTable.Style().Options.SeparateRows = true
-	newTable.Style().Options.SeparateFooter = true
-	newTable.Style().Title.Align = text.AlignCenter
-	return newTable
+type TableWriter struct {
+	Writer table.Writer
 }
-func FmtPercent(t table.Writer, name string) {
+
+func CreatTableWriter() *TableWriter {
+	w := new(TableWriter)
+	w.Writer = table.NewWriter()
+	// newTable.SetAutoIndex(true)
+	w.Writer.Style().Options.SeparateHeader = true
+	w.Writer.Style().Options.SeparateRows = true
+	w.Writer.Style().Options.SeparateFooter = true
+	w.Writer.Style().Title.Align = text.AlignCenter
+	// w.Writer.SetPageSize(20)
+	return w
+}
+func (w *TableWriter) fmtPercent(name string) {
 
 	//字体颜色
 	warnColor := text.Colors{text.BgRed}
@@ -27,10 +33,10 @@ func FmtPercent(t table.Writer, name string) {
 		}
 		return fmt.Sprintf("%.2f%%", val)
 	})
-	t.Style().Format = table.FormatOptions{
+	w.Writer.Style().Format = table.FormatOptions{
 		Header: text.FormatTitle,
 	}
-	t.SetColumnConfigs([]table.ColumnConfig{
+	w.Writer.SetColumnConfigs([]table.ColumnConfig{
 		{
 			Name:        name,
 			Align:       text.AlignCenter,
@@ -42,16 +48,16 @@ func FmtPercent(t table.Writer, name string) {
 
 }
 
-func resetTable(t table.Writer) {
-	t.ResetRows()
-	t.ResetHeaders()
+func (w *TableWriter) resetTable() {
+	w.Writer.ResetRows()
+	w.Writer.ResetHeaders()
 }
 
-func updateHost(t table.Writer) {
+func (w *TableWriter) updateHost() {
 	hInfo := GetHostInfo()
-	resetTable(t)
-	t.SetTitle("系统信息")
-	t.AppendRows([]table.Row{
+	w.resetTable()
+	w.Writer.SetTitle("系统信息")
+	w.Writer.AppendRows([]table.Row{
 		{"系统名称", hInfo.Hostname},
 		{"系统类别", hInfo.OS},
 		{"系统类型", hInfo.KernelArch},
@@ -61,48 +67,46 @@ func updateHost(t table.Writer) {
 		{"运行时间", fmtSinceTime(time.Unix(int64(hInfo.Uptime), 0))},
 	})
 }
-func updateCPU(t table.Writer) {
+func (w *TableWriter) updateCPU() {
 	cpuInfo := GetCpuInfo()
 	cpuCurrentInfo := GetCpuCurrentInfo(cpuInfo)
-	loadInfo := GetLoadCurrentInfo(cpuInfo)
-	resetTable(t)
-	t.SetTitle("cpu信息")
-	t.AppendHeader(table.Row{fmt.Sprintf("Cores:%d, Logical Cores:%d", cpuInfo.CPUCores, cpuInfo.CPULogicalCores), cpuInfo.ModelName})
 
-	cTable := CreatTable()
-	// cTable.SetStyle(table.StyleColoredBlackOnCyanWhite)
-	cTable.Style().Title.Align = text.AlignCenter
-	FmtPercent(cTable, "Percent")
-	cTable.SetTitle("Userd")
-	cTable.AppendHeader(table.Row{"coreID", "Percent"})
+	w.resetTable()
+	w.Writer.SetTitle("cpu信息")
+	w.Writer.AppendHeader(table.Row{fmt.Sprintf("Cores:%d, Logical Cores:%d", cpuInfo.CPUCores, cpuInfo.CPULogicalCores), cpuInfo.ModelName})
+	w.Writer.AppendHeader(table.Row{"coreID", "Percent"})
+
 	for idx, percent := range cpuCurrentInfo.CouesUsedPercent {
-		cTable.AppendRow(table.Row{idx, percent})
+		w.Writer.AppendRow(table.Row{idx, percent})
 	}
-	cTable.AppendRow(table.Row{"Avg", cpuCurrentInfo.CPUAvgPercent})
-	cTable.AppendRow(table.Row{"Total", cpuCurrentInfo.CPUTotalUsePercent})
+	w.Writer.AppendRow(table.Row{"Avg", cpuCurrentInfo.CPUAvgPercent})
+	w.Writer.AppendRow(table.Row{"Total", cpuCurrentInfo.CPUTotalUsePercent})
+	w.fmtPercent("Percent")
 
-	lTable := CreatTable()
-	FmtPercent(lTable, "Percent")
-	// lTable.SetStyle(table.StyleColoredDark)
-	lTable.Style().Title.Align = text.AlignCenter
-	lTable.SetTitle("Load")
-	lTable.AppendHeader(table.Row{"Load", "Percent"})
-	lTable.AppendRow(table.Row{"Load1", loadInfo.Load1 * 100})
-	lTable.AppendRow(table.Row{"Load5", loadInfo.Load5 * 100})
-	lTable.AppendRow(table.Row{"Load15", loadInfo.Load15 * 100})
-	lTable.AppendRow(table.Row{"Load1-UsagePercent", loadInfo.UsagePercent})
-
-	t.AppendRow(table.Row{cTable.Render(), lTable.Render()})
 }
 
-func updateMemory(t table.Writer) {
+func (w *TableWriter) updateLoad() {
+	cpuInfo := GetCpuInfo()
+	loadInfo := GetLoadCurrentInfo(cpuInfo)
+	w.resetTable()
+	w.Writer.SetTitle("Load")
+	w.Writer.AppendHeader(table.Row{"Load", "Percent"})
 
+	w.Writer.AppendRow(table.Row{"Load1", loadInfo.Load1 * 100})
+	w.Writer.AppendRow(table.Row{"Load5", loadInfo.Load5 * 100})
+	w.Writer.AppendRow(table.Row{"Load15", loadInfo.Load15 * 100})
+	w.Writer.AppendRow(table.Row{"Load1-UsagePercent", loadInfo.UsagePercent})
+	w.fmtPercent("Percent")
+}
+
+func (w *TableWriter) updateMemory() {
 	MemInfoLast := GetMemInfo()
 	SwapMemInfoLast := GetSwapInfo()
-	t.SetTitle("内存信息")
-	resetTable(t)
-	t.AppendHeader(table.Row{"type", "total", "used", "userPercent", "free", "available"})
-	t.AppendRow(
+
+	w.resetTable()
+	w.Writer.SetTitle("内存信息")
+	w.Writer.AppendHeader(table.Row{"type", "total", "used", "userPercent", "free", "available"})
+	w.Writer.AppendRow(
 		table.Row{
 			MemInfoLast.Type,
 			convertUnit(B, float64(MemInfoLast.Total)),
@@ -111,7 +115,7 @@ func updateMemory(t table.Writer) {
 			convertUnit(B, float64(MemInfoLast.Free)),
 			convertUnit(B, float64(MemInfoLast.Available)),
 		})
-	t.AppendRow(
+	w.Writer.AppendRow(
 		table.Row{
 			SwapMemInfoLast.Type,
 			convertUnit(B, float64(SwapMemInfoLast.Total)),
@@ -120,27 +124,21 @@ func updateMemory(t table.Writer) {
 			convertUnit(B, float64(SwapMemInfoLast.Free)),
 		})
 
-	FmtPercent(t, "userPercent")
+	w.fmtPercent("userPercent")
 
 }
 
-func updateDisk(t table.Writer) {
+func (w *TableWriter) updateDisk() {
 	rows, err := GetDiskInfo()
 	if err != nil {
 		fmt.Printf("获取磁盘信息失败 , err:%v\n", err)
 	}
-	resetTable(t)
-	t.SetTitle("硬盘信息")
-	// fmt.Printf("%v", rows)
-	dTable := CreatTable()
-	dTable.SetTitle("device")
-	dTable.AppendHeader(table.Row{"Device", "fstype", "path", "total", "used", "free", "userPercent"})
-	iTable := CreatTable()
-	iTable.SetTitle("Inodes")
-	iTable.AppendHeader(table.Row{"Device", "total", "used", "free", "userPercent"})
-
+	w.resetTable()
+	// device
+	w.Writer.SetTitle("硬盘信息-device")
+	w.Writer.AppendHeader(table.Row{"Device", "fstype", "path", "total", "used", "free", "userPercent"})
 	for _, row := range rows {
-		dTable.AppendRow(
+		w.Writer.AppendRow(
 			table.Row{
 				row.Device,
 				row.Fstype,
@@ -150,8 +148,16 @@ func updateDisk(t table.Writer) {
 				convertUnit(B, float64(row.Free)),
 				row.UsedPercent,
 			})
+	}
 
-		iTable.AppendRow(
+	w.fmtPercent("userPercent")
+	w.render()
+	// indoes
+	w.resetTable()
+	w.Writer.SetTitle("硬盘信息-Inodes")
+	w.Writer.AppendHeader(table.Row{"Device", "total", "used", "free", "userPercent"})
+	for _, row := range rows {
+		w.Writer.AppendRow(
 			table.Row{
 				row.Device,
 				convertUnit(B, float64(row.InodesTotal)),
@@ -160,61 +166,114 @@ func updateDisk(t table.Writer) {
 				row.InodesUsedPercent,
 			})
 	}
-	FmtPercent(dTable, "userPercent")
-	FmtPercent(iTable, "userPercent")
+	w.fmtPercent("userPercent")
 
-	t.AppendRow(table.Row{dTable.Render(), iTable.Render()})
+	fmt.Print("\n")
+	fmt.Print(w.Writer.Render())
 }
 
-func updateNet(t table.Writer) {
+func (w *TableWriter) updateNet() {
 	nets, err := GetNetIO()
 	if err != nil {
 		fmt.Printf("获取网卡信息失败 , err:%v\n", err)
 	}
-	t.SetTitle("网络信息")
-	resetTable(t)
-	t.AppendHeader(table.Row{"Name", "BytesSent", "BytesRecv", "PacketsSent", "PacketsRecv"})
+	w.Writer.SetTitle("网卡信息")
+	w.resetTable()
+	w.Writer.AppendHeader(table.Row{"Name", "BytesSent", "BytesRecv", "PacketsSent", "PacketsRecv"})
 	for _, row := range nets {
-		t.AppendRow(table.Row{row.Name, row.BytesSent, row.BytesRecv, row.PacketsSent, row.PacketsRecv})
+		w.Writer.AppendRow(table.Row{row.Name, row.BytesSent, row.BytesRecv, row.PacketsSent, row.PacketsRecv})
+	}
+
+}
+func (w *TableWriter) updateProc() {
+	procs := GetProcInfo()
+
+	w.Writer.SetTitle("进程信息")
+	w.resetTable()
+
+	w.Writer.AppendHeader(table.Row{"Name", "PID", "IsRunning", "CPU-Percent", "MEM-Percent", "threds", "UserName", "status"})
+	for _, row := range procs {
+		w.Writer.AppendRow(
+			table.Row{
+				row.Name,
+				row.Pid,
+				row.IsRunning,
+				row.CPUPercent,
+				float64(row.MemPercent),
+				row.NumThreds,
+				row.UserName,
+				row.Status,
+			})
+	}
+
+	w.fmtPercent("CPU-Percent")
+	w.fmtPercent("MEM-Percent")
+}
+
+func (w *TableWriter) updateConnents() {
+	conns := GetConnents()
+
+	w.Writer.SetTitle("网络信息")
+	w.resetTable()
+
+	w.Writer.AppendHeader(table.Row{"Name", "PID", "type", "loacl IP", "local port", "remote IP", "remote port", "status"})
+	for _, row := range conns {
+		w.Writer.AppendRow(table.Row{GetProcForPid(row.Pid).Name, row.Pid, row.Type, row.LIP, row.LPort, row.RIP, row.RPort, row.Status})
 	}
 
 }
 
-func render(t table.Writer) {
+func (w *TableWriter) render() {
 	// fmt.Fprintln(u.Write, t.Render())
 	clear()
-	fmt.Print(t.Render())
+	fmt.Print(w.Writer.Render())
 }
 
-func UITicker(t table.Writer) {
+func (w *TableWriter) UITicker() {
 	var a string
-	ticker := time.NewTicker(time.Second * 2) // 创建一个定时器对象
-	fmt.Print("start...\ncpu信息输入c，内存信息输入m，硬盘信息输入d，网络信息输入n")
+	ticker := time.NewTicker(time.Second * 1) // 创建一个定时器对象
+	fmt.Print("start...\ncpu信息c,硬盘信息d,系统信息h,网卡信息i,负载信息l,网络信息n,内存信息m,内存信息p,退出q,")
 	go func() {
 		for {
 			select {
 			case <-ticker.C: // 每隔一秒，会执行一次
 				switch a {
 				case "c":
-					updateCPU(t)
-					render(t)
+					w.updateCPU()
+					w.render()
+					ticker.Reset(time.Second * 1)
 				case "d":
-					updateDisk(t)
-					render(t)
+					w.updateDisk()
+					ticker.Reset(time.Second * 2)
 				case "h":
-					updateHost(t)
-					render(t)
+					w.updateHost()
+					w.render()
+					ticker.Reset(time.Second * 1)
+				case "i":
+					w.updateNet()
+					w.render()
+					ticker.Reset(time.Second * 3)
+				case "l":
+					w.updateLoad()
+					w.render()
+					ticker.Reset(time.Second * 2)
 				case "n":
-					updateNet(t)
-					render(t)
+					w.updateConnents()
+					w.render()
+					ticker.Reset(time.Second * 5)
 				case "m":
-					updateMemory(t)
-					render(t)
+					w.updateMemory()
+					w.render()
+					ticker.Reset(time.Second * 1)
+				case "p":
+					w.updateProc()
+					w.render()
+					ticker.Reset(time.Second * 8)
 				case "q":
 					ticker.Stop()
 				default:
-					updateCPU(t)
-					render(t)
+					w.updateCPU()
+					w.render()
 				}
 			}
 
@@ -228,5 +287,6 @@ func UITicker(t table.Writer) {
 			fmt.Println("Bay Bay ")
 			break
 		}
+
 	}
 }

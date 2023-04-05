@@ -1,10 +1,13 @@
 package main
 
-import "system-monit/info"
+import (
+	"system-monit/info"
+)
 
 func main() {
-	table := info.CreatTable()
-	info.UITicker(table)
+	// info.GetConnents()
+	table := info.CreatTableWriter()
+	table.UITicker()
 	// info.FmtMemoryInfo()
 	// info.FmtDiskInfo()
 	// info.FmtNetInfo()

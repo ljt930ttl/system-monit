@@ -1,8 +1,6 @@
 package info
 
 import (
-	"fmt"
-
 	"github.com/shirou/gopsutil/host"
 )
 
@@ -25,7 +23,7 @@ type HostInfo struct {
 func GetHostInfo() *HostInfo {
 	hostInfo := &HostInfo{}
 	info, _ := host.Info()
-	fmt.Printf("info:%v", info)
+	// fmt.Printf("info:%v", info)
 
 	hostInfo.Hostname = info.Hostname
 	hostInfo.OS = info.OS
