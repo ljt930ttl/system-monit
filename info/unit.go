@@ -68,5 +68,13 @@ func clear() {
 var ZERO_TIME = time.Unix(0, 0)
 
 func fmtSinceTime(t time.Time) string {
-	return fmt.Sprintf("%02d天  %02d 时 %02d 分 %02d 秒", t.Day()-ZERO_TIME.Day(), t.Hour()-ZERO_TIME.Hour(), t.Minute(), t.Second())
+	d := t.Day() - ZERO_TIME.Day()
+	h := t.Hour() - ZERO_TIME.Hour()
+	// 如果计算出数小时为负数，向天数借一，给到小时数加24小时
+	if h < 0 {
+		h += 24
+		d -= 1
+	}
+
+	return fmt.Sprintf("%02d天  %02d 时 %02d 分 %02d 秒", d, h, t.Minute(), t.Second())
 }
