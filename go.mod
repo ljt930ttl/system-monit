@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/apache/thrift v0.18.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
