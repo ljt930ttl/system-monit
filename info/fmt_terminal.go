@@ -20,10 +20,13 @@ func CreatTableWriter() *TableWriter {
 	w.Writer.Style().Options.SeparateRows = true
 	w.Writer.Style().Options.SeparateFooter = true
 	w.Writer.Style().Title.Align = text.AlignCenter
+	w.Writer.Style().Format = table.FormatOptions{
+		Header: text.FormatTitle,
+	}
 	// w.Writer.SetPageSize(20)
 	return w
 }
-func (w *TableWriter) fmtPercent(name string) {
+func (w *TableWriter) fmtPercent(names []string) {
 
 	//字体颜色
 	warnColor := text.Colors{text.BgRed}
@@ -33,18 +36,19 @@ func (w *TableWriter) fmtPercent(name string) {
 		}
 		return fmt.Sprintf("%.2f%%", val)
 	})
-	w.Writer.Style().Format = table.FormatOptions{
-		Header: text.FormatTitle,
+	configs := make([]table.ColumnConfig, 1)
+	for _, n := range names {
+		configs = append(configs,
+			table.ColumnConfig{
+				Name:        n,
+				Align:       text.AlignCenter,
+				AlignHeader: text.AlignCenter,
+				AlignFooter: text.AlignCenter,
+				Transformer: warnTransFormer,
+			},
+		)
 	}
-	w.Writer.SetColumnConfigs([]table.ColumnConfig{
-		{
-			Name:        name,
-			Align:       text.AlignCenter,
-			AlignHeader: text.AlignCenter,
-			AlignFooter: text.AlignCenter,
-			Transformer: warnTransFormer,
-		},
-	})
+	w.Writer.SetColumnConfigs(configs)
 
 }
 
@@ -81,7 +85,7 @@ func (w *TableWriter) updateCPU() {
 	}
 	w.Writer.AppendRow(table.Row{"Avg", cpuCurrentInfo.CPUAvgPercent})
 	w.Writer.AppendRow(table.Row{"Total", cpuCurrentInfo.CPUTotalUsePercent})
-	w.fmtPercent("Percent")
+	w.fmtPercent([]string{"Percent"})
 
 }
 
@@ -96,7 +100,7 @@ func (w *TableWriter) updateLoad() {
 	w.Writer.AppendRow(table.Row{"Load5", loadInfo.Load5 * 100})
 	w.Writer.AppendRow(table.Row{"Load15", loadInfo.Load15 * 100})
 	w.Writer.AppendRow(table.Row{"Load1-UsagePercent", loadInfo.UsagePercent})
-	w.fmtPercent("Percent")
+	w.fmtPercent([]string{"Percent"})
 }
 
 func (w *TableWriter) updateMemory() {
@@ -124,7 +128,7 @@ func (w *TableWriter) updateMemory() {
 			convertUnit(B, float64(SwapMemInfoLast.Free)),
 		})
 
-	w.fmtPercent("userPercent")
+	w.fmtPercent([]string{"userPercent"})
 
 }
 
@@ -150,7 +154,7 @@ func (w *TableWriter) updateDisk() {
 			})
 	}
 
-	w.fmtPercent("userPercent")
+	w.fmtPercent([]string{"userPercent"})
 	w.render()
 	// indoes
 	w.resetTable()
@@ -166,7 +170,7 @@ func (w *TableWriter) updateDisk() {
 				row.InodesUsedPercent,
 			})
 	}
-	w.fmtPercent("userPercent")
+	w.fmtPercent([]string{"userPercent"})
 
 	fmt.Print("\n")
 	fmt.Print(w.Writer.Render())
@@ -206,8 +210,8 @@ func (w *TableWriter) updateProc() {
 			})
 	}
 
-	w.fmtPercent("CPU-Percent")
-	w.fmtPercent("MEM-Percent")
+	w.fmtPercent([]string{"CPU-Percent", "MEM-Percent"})
+
 }
 
 func (w *TableWriter) updateConnents() {
