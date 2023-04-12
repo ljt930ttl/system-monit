@@ -1,25 +1,26 @@
 package exp
 
 import (
-	"example"
+	"context"
 	"fmt"
+	"system-monit/transmit/thrift/exp/example"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/apache/thrift/lib/go/thrift"
 )
 
 type exampleHandler struct{}
 
-func (h *exampleHandler) Echo(request *example.Example) (*example.Example, error) {
+func (h *exampleHandler) Echo(ctx context.Context, request *example.Example) (*example.Example, error) {
 	fmt.Printf("Received message: %s\n", request.Message)
 	response := &example.Example{
 		Message: "Echo: " + request.Message,
 	}
 	return response, nil
 }
-func runServer() error {
+func RunServer(addr string) error {
 	handler := &exampleHandler{}
 	processor := example.NewExampleServiceProcessor(handler)
-	transport, err := thrift.NewTServerSocket(":9090")
+	transport, err := thrift.NewTServerSocket(addr)
 	if err != nil {
 		return err
 	}
@@ -27,8 +28,9 @@ func runServer() error {
 	fmt.Println("Starting the server...")
 	return server.Serve()
 }
-func main() {
-	if err := runServer(); err != nil {
-		fmt.Println("Error running server:", err)
-	}
-}
+
+// func main() {
+// 	if err := runServer(); err != nil {
+// 		fmt.Println("Error running server:", err)
+// 	}
+// }

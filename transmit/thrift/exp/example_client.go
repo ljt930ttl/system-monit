@@ -1,14 +1,17 @@
 package exp
 
 import (
-	"example"
+	"context"
 	"fmt"
+	"system-monit/transmit/thrift/exp/example"
 
-	"git.apache.org/thrift.git/lib/go/thrift"
+	"github.com/apache/thrift/lib/go/thrift"
 )
 
-func runClient() error {
-	transport, err := thrift.NewTSocket("localhost:9090")
+var defaultCtx = context.Background()
+
+func RunClient(addr string) error {
+	transport, err := thrift.NewTSocket(addr)
 	if err != nil {
 		return err
 	}
@@ -21,15 +24,16 @@ func runClient() error {
 	request := &example.Example{
 		Message: "Hello, world!",
 	}
-	response, err := client.Echo(request)
+	response, err := client.Echo(defaultCtx, request)
 	if err != nil {
 		return err
 	}
 	fmt.Println("Server response:", response.Message)
 	return nil
 }
-func main() {
-	if err := runClient(); err != nil {
-		fmt.Println("Error running client:", err)
-	}
-}
+
+// func main() {
+// 	if err := runClient(); err != nil {
+// 		fmt.Println("Error running client:", err)
+// 	}
+// }
