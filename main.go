@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"system-monit/transmit/thrift/exp"
+	"system-monit/transmit/thrift/utzzz"
 )
 
 func Usage() {
@@ -16,18 +16,21 @@ func Usage() {
 
 func main() {
 	flag.Usage = Usage
-	server := flag.Bool("server", false, "Run server")
-	addr := flag.String("addr", "localhost:9090", "Address to listen to")
+	// server := flag.Bool("server", false, "Run server")
+	addr := flag.String("addr", "10.8.4.208:6100", "Address to listen to")
 
 	flag.Parse()
-
-	if *server {
-		if err := exp.RunServer(*addr); err != nil {
-			fmt.Println("error running server:", err)
-		}
-	} else {
-		if err := exp.RunClient(*addr); err != nil {
-			fmt.Println("error running client:", err)
-		}
+	if err := utzzz.RunServer(*addr); err != nil {
+		fmt.Println("error running server:", err)
 	}
+
+	// if *server {
+	// 	if err := utzzz.RunServer(*addr); err != nil {
+	// 		fmt.Println("error running server:", err)
+	// 	}
+	// } else {
+	// 	if err := utzzz.RunClient(*addr); err != nil {
+	// 		fmt.Println("error running client:", err)
+	// 	}
+	// }
 }
